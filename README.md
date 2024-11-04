@@ -1,235 +1,145 @@
-## Getting started
+# Tool Lending Library Canister 🛠️📚
 
-To get started developing in the browser, click this button:
+Welcome to the **Tool Lending Library** project! This project is a decentralized solution for community members to lend and borrow tools from each other, making resources more accessible and fostering a spirit of collaboration and sustainability. Built on the Internet Computer Protocol (ICP), this project leverages blockchain technology to create a secure, transparent, and user-friendly tool-sharing platform.
 
-[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/dacadeorg/icp-message-board-contract)
+## Project Description 📖
 
-If you rather want to use GitHub Codespaces, click this button instead:
+The **Tool Lending Library** is a canister built with TypeScript (Azle) on the Internet Computer. It allows community members to:
 
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/dacadeorg/icp-message-board-contract?quickstart=1)
+- Register their profiles and join the lending library.
+- Add tools to the library for others to borrow.
+- Borrow tools from the library.
+- Keep track of borrowing transactions, including return status.
 
-**NOTE**: After `dfx deploy`, when developing in GitHub Codespaces, run `./canister_urls.py` and click the links that are shown there.
+The aim of this project is to empower communities by sharing resources, reducing costs, and promoting sustainability.
 
-If you prefer running VS Code locally and not in the browser, click "Codespaces: ..." or "Gitpod" in the bottom left corner and select "Open in VS Code" in the menu that appears. 
-If prompted, proceed by installing the recommended plugins for VS Code.
+## Main Features ✨
 
-To develop fully locally, first install [Docker](https://www.docker.com/get-started/) and [VS Code](https://code.visualstudio.com/) and start them on your machine.
-Next, click the following button to open the dev container locally:
+- **User Registration**: Members can create profiles to join the library and participate in lending and borrowing.
+- **Tool Listings**: Users can add their tools, along with details such as availability and condition, to the library for others to borrow.
+- **Borrow Tools**: Borrowing tools is simple, with transactions recorded and tracked for transparency.
+- **Return Tools**: Users can return borrowed tools, updating their availability in the library.
 
-[![Open locally in Dev Containers](https://img.shields.io/static/v1?label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/dacadeorg/icp-message-board-contract)
+## How to Run the Project 🚀
 
-## Prerequisities
+Follow these steps to set up the environment and run the **Tool Lending Library** canister on your local machine.
 
-1. Install `nvm`:
-- `curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash`
+### Prerequisites 📋
 
-2. Switch to node v20:
-- `nvm install 20`
-- `nvm use 20`
+Before getting started, ensure you have the following installed:
 
-3. Install build dependencies:
-## For Ubuntu and WSL2
-```
-sudo apt-get install podman
-```
-## For macOS:
-```
-xcode-select --install
-brew install podman
-```
+- **Node.js** (v18 or higher)
+- **DFX** (Internet Computer SDK)
+- **NVM** (Node Version Manager)
 
-4. Install `dfx`
-- `DFX_VERSION=0.16.1 sh -ci "$(curl -fsSL https://sdk.dfinity.org/install.sh)"`
+### Step 1: Set Up the Environment ⚙️
 
-5. Add `dfx` to PATH:
-- `echo 'export PATH="$PATH:$HOME/bin"' >> "$HOME/.bashrc"`
+1. **Install Node Version Manager (nvm)**:
 
-6. Create a project structure:
-- create `src` dir
-- create `index.ts` in the `src` dir
-- create `tsconfig.json` in the root directory with the next content
-```
-{
-    "compilerOptions": {
-        "allowSyntheticDefaultImports": true,
-        "strictPropertyInitialization": false,
-        "strict": true,
-        "target": "ES2020",
-        "moduleResolution": "node",
-        "allowJs": true,
-        "outDir": "HACK_BECAUSE_OF_ALLOW_JS"
-    }
-}
-```
-- create `dfx.json` with the next content
-```
-{
-  "canisters": {
-    "message_board": {
-      "type": "custom",
-      "main": "src/index.ts",
-      "candid": "src/index.did",
-      "candid_gen": "http",
-      "build": "npx azle message_board",
-      "wasm": ".azle/message_board/message_board.wasm",
-      "gzip": true,
-      "metadata": [
-        {
-            "name": "candid:service",
-            "path": "src/index.did"
-        },
-        {
-            "name": "cdk:name",
-            "content": "azle"
-        }
-    ]
-    }
-  }
-}
-```
-where `message_board` is the name of the canister. 
+   ```bash
+   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+   ```
 
-6. Create a `package.json` with the next content and run `npm i`:
-```
-{
-  "name": "message_board",
-  "version": "0.1.0",
-  "description": "Internet Computer message board application",
-  "dependencies": {
-    "@dfinity/agent": "^0.21.4",
-    "@dfinity/candid": "^0.21.4",
-    "azle": "^0.21.1",
-    "express": "^4.18.2",
-    "uuid": "^9.0.1"
-  },
-  "engines": {
-    "node": "^20"
-  },
-  "devDependencies": {
-    "@types/express": "^4.17.21"
-  }
-}
+   After installation, close and reopen your terminal, then run:
 
+   ```bash
+   nvm install 20
+   nvm use 20
+   ```
+
+2. **Install DFX**:
+   
+   **DFX** is the command-line interface for the Internet Computer. It provides tools for creating, deploying, and managing canisters.
+   
+   - **Installing DFX on macOS**:
+     - Install **Homebrew** (if not already installed):
+       ```bash
+       /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+       ```
+     - Update command line tools:
+       ```bash
+       xcode-select --install
+       ```
+     - Install **Podman**:
+       ```bash
+       brew install podman
+       ```
+     - Install **DFX**:
+       ```bash
+       DFX_VERSION=0.16.1 sh -ci "$(curl -fsSL https://sdk.dfinity.org/install.sh)"
+       ```
+     - Add **DFX** to your PATH:
+       ```bash
+       echo 'export PATH="$PATH:$HOME/bin"' >> "$HOME/.bashrc"
+       ```
+     - Verify the installation:
+       ```bash
+       dfx --version
+       ```
+   
+   - **Installing DFX on Ubuntu and WSL2**:
+     - Install necessary dependencies:
+       ```bash
+       sudo apt-get install podman
+       ```
+
+### Step 2: Clone the Repository 🧩
+
+Clone the **Tool Lending Library** repository to your local machine:
+
+```bash
+git clone https://github.com/Jud-et/ICP-azle-boilerplate.git
 ```
 
-7. Run a local replica
-- `dfx start --host 127.0.0.1:8000`
+Navigate to the project directory:
 
-#### IMPORTANT NOTE 
-If you make any changes to the `StableBTreeMap` structure like change datatypes for keys or values, changing size of the key or value, you need to restart `dfx` with the `--clean` flag. `StableBTreeMap` is immutable and any changes to it's configuration after it's been initialized are not supported.
-- `dfx start --host 127.0.0.1:8000 --clean`
-
-8. Deploy a canister
-- `dfx deploy`
-Also, if you are building an HTTP-based canister and would like your canister to autoreload on file changes (DO NOT deploy to mainnet with autoreload enabled):
-```
-AZLE_AUTORELOAD=true dfx deploy
+```bash
+cd ICP-azle-boilerplate
 ```
 
-9. Stop a local replica
-- `dfx stop`
+### Step 3: Install Dependencies 📦
 
-## Interaction with the canister
+Install the project dependencies:
 
-When a canister is deployed, `dfx deploy` produces a link to the Candid interface in the shell output.
-
-Candid interface provides a simple UI where you can interact with functions in the canister.
-
-On the other hand, you can interact with the canister using `dfx` via CLI:
-
-### get canister id:
-- `dfx canister id <CANISTER_NAME>`
-Example:
-- `dfx canister id message_board`
-Response:
-```
-bkyz2-fmaaa-aaaaa-qaaaq-cai
+```bash
+npm install
 ```
 
-Now, the URL of your canister should like this:
-```
-http://bkyz2-fmaaa-aaaaa-qaaaq-cai.localhost:8000
-```
+### Step 4: Deploy the Canister 🔨
 
-With this URL, you can interact with the canister using an HTTP client of your choice. We are going to use `curl`.
+To deploy the canister, make sure the local Internet Computer is running and execute the provided `deploy.sh` script:
 
-### create a message:
-- `curl -X POST <CANISTER_URL>/<REQUEST_PATH> -H "Content-type: application/json" -d <PAYLOAD>`
-Example: 
-- `curl -X POST http://bkyz2-fmaaa-aaaaa-qaaaq-cai.localhost:8000/messages -H "Content-type: application/json" -d '{"title": "todo list", "body": "some important things", "attachmentURL": "url/path/to/some/photo/attachment"}'`
-Response:
-```
-{
-    "id": "d8326ec8-fe70-402e-8914-ca83f0f1055b",
-    "createdAt": "2024-02-09T11:24:32.441Z",
-    "title": "todo list",
-    "body": "some important things",
-    "attachmentURL": "url/path/to/some/photo/attachment"
-}
-```
+1. **Make the deploy script executable**:
 
-### update a message:
-- `curl -X PUT <CANISTER_URL>/<REQUEST_PATH>/<MESSAGE_ID> -H "Content-type: application/json" -d <PAYLOAD>`
-Example (In this case we include a message id in the payload to identify the message we want to update): 
-- `curl -X PUT  http://bkyz2-fmaaa-aaaaa-qaaaq-cai.localhost:8000/messages/d8326ec8-fe70-402e-8914-ca83f0f1055b -H "Content-type: application/json" -d '{"title": "UPDATED TITLE", "body": "some important things", "attachmentURL": "url/path/to/some/photo/attachment"}'`
-Response:
-```
-{
-    "id": "d8326ec8-fe70-402e-8914-ca83f0f1055b",
-    "createdAt": "2024-02-09T11:24:32.441Z",
-    "title": "UPDATED TITLE",
-    "body": "some important things",
-    "attachmentURL": "url/path/to/some/photo/attachment",
-    "updatedAt": "2024-02-09T11:26:59.002Z"
-}
-```
+   ```bash
+   chmod +x deploy.sh
+   ```
 
-### get all messages:
-- `curl <CANISTER_URL>/<REQUEST_PATH>`
-Example:
-- `curl http://bkyz2-fmaaa-aaaaa-qaaaq-cai.localhost:8000/messages`
-Response:
-```
-[
-    {
-        "id": "d8326ec8-fe70-402e-8914-ca83f0f1055b",
-        "createdAt": "2024-02-09T11:24:32.441Z",
-        "title": "UPDATED TITLE",
-        "body": "some important things",
-        "attachmentURL": "url/path/to/some/photo/attachment",
-        "updatedAt": "2024-02-09T11:26:59.002Z"
-    }
-]
-```
+2. **Run the deployment**:
 
-### get a message:
-- `curl <CANISTER_URL>/<REQUEST_PATH>/<MESSAGE_ID>`
-Example (here we only provide a message id):
-- `curl http://bkyz2-fmaaa-aaaaa-qaaaq-cai.localhost:8000/messages/d8326ec8-fe70-402e-8914-ca83f0f1055b`
-Response:
-```
-{
-    "id": "d8326ec8-fe70-402e-8914-ca83f0f1055b",
-    "createdAt": "2024-02-09T11:24:32.441Z",
-    "title": "UPDATED TITLE",
-    "body": "some important things",
-    "attachmentURL": "url/path/to/some/photo/attachment",
-    "updatedAt": "2024-02-09T11:26:59.002Z"
-}
-```
+   ```bash
+   ./deploy.sh
+   ```
 
-### delete a message:
-- `curl -X DELETE <CANISTER_URL>/<REQUEST_PATH>/<MESSAGE_ID>`
-Example (here we only provide a message id):
-- `curl -X DELETE http://bkyz2-fmaaa-aaaaa-qaaaq-cai.localhost:8000/messages/d8326ec8-fe70-402e-8914-ca83f0f1055b`
-Response (returns the deleted message):
-```
-{
-    "id": "d8326ec8-fe70-402e-8914-ca83f0f1055b",
-    "createdAt": "2024-02-09T11:24:32.441Z",
-    "title": "UPDATED TITLE",
-    "body": "some important things",
-    "attachmentURL": "url/path/to/some/photo/attachment",
-    "updatedAt": "2024-02-09T11:26:59.002Z"
-}
-```
+This script will start the Internet Computer locally, install the required dependencies, and deploy the Tool Lending Library canister.
+
+### Step 5: Interact with the Canister 📞
+
+Once deployed, you can interact with the canister using DFX commands to test its functionality, such as adding tools, borrowing, and returning them.
+
+### Contribution Guidelines 🤝
+
+We welcome contributions from the open-source community to improve the **Tool Lending Library** project! To contribute:
+
+1. Fork the repository.
+2. Create a new branch for your feature or bug fix.
+3. Submit a pull request for review.
+
+Please ensure your code is well-documented and follows best practices. Together, we can make this project even more impactful for communities everywhere! 🌍
+
+## License 📜
+
+This project is open source and available under the [MIT License](LICENSE).
+
+Feel free to reach out if you have any questions or suggestions for improvement! 😊
+
