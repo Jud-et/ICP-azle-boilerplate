@@ -43,3 +43,25 @@ type BorrowingTransaction = {
 let userProfiles: UserProfile[] = [];
 let toolListings: ToolListing[] = [];
 let borrowingTransactions: BorrowingTransaction[] = [];
+
+/**
+ * Adds a new user profile to the system.
+ * @param username - The name of the user.
+ * @param contactInfo - Contact information for the user.
+ * @returns The ID of the newly added user.
+ */
+export function addUser(username: string, contactInfo: string): string {
+    const userId = uuidv4(); // Generate a unique ID for the user.
+    
+    const newUser: UserProfile = {
+      userId,
+      username,
+      contactInfo,
+      toolsOwned: [],
+      toolsBorrowed: []
+    };
+  
+    userProfiles.push(newUser); // Add the user to the in-memory storage.
+    return userId; // Return the unique ID of the new user.
+  }
+  
