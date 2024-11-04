@@ -1,0 +1,23 @@
+{
+  "canisters": {
+    "tool_lending_library": {
+      "type": "custom",
+      "main": "src/index.ts",
+      "candid": "src/index.did",
+      "candid_gen": "http",
+      "build": "npx azle tool_lending_library",
+      "wasm": ".azle/tool_lending_library/tool_lending_library.wasm",
+      "gzip": true,
+      "metadata": [
+        {
+            "name": "candid:service",
+            "path": "src/index.did"
+        },
+        {
+            "name": "cdk:name",
+            "content": "azle"
+        }
+    ]
+    }
+  }
+}
