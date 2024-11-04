@@ -103,4 +103,61 @@ export function viewAvailableTools(): ToolListing[] {
     // Filter and return tools that are available.
     return toolListings.filter(tool => tool.availability);
   }
+/**
+ * Allows a user to borrow a tool.
+ * @param borrowerId - The ID of the user borrowing the tool.
+ * @param toolId - The ID of the tool to be borrowed.
+ * @returns A CanisterResult containing the transaction ID if successful.
+ */
+export function borrowTool(borrowerId: string, toolId: string): CanisterResult<string> {
+    const tool = toolListings.find(t => t.toolId === toolId);
+    if (!tool || !tool.availability) {
+      return ic.reject('Tool is not available for borrowing');
+    }
+  
+    const transactionId = uuidv4(); // Generate a unique transaction ID.
     
+    const newTransaction: BorrowingTransaction = {
+      transactionId,
+      toolId,
+      borrowerId,
+      borrowDate: new Date().toISOString(),
+      returnDate: null,
+      status: 'pending'
+    };
+  
+    borrowingTransactions.push(newTransaction); // Add the transaction to the storage.
+    tool.availability = false; // Mark the tool as unavailable.
+  
+    // Update borrower's tools list
+    const borrower = userProfiles.find(user => user.userId === borrowerId);
+    if (borrower) {
+      borrower.toolsBorrowed.push(toolId);
+    }
+  
+    return ic.ok(transactionId); // Return the unique ID of the transaction.
+  }
+  
+  /**
+   * Allows a user to return a borrowed tool.
+   * @param transactionId - The ID of the transaction.
+   * @returns A CanisterResult indicating the outcome of the return.
+   */
+  export function returnTool(transactionId: string): CanisterResult<string> {
+    const transaction = borrowingTransactions.find(t => t.transactionId === transactionId);
+    if (!transaction || transaction.status !== 'pending') {
+      return ic.reject('Invalid transaction or tool has already been returned');
+    }
+  
+    transaction.returnDate = new Date().toISOString(); // Set the return date.
+    transaction.status = 'returned'; // Update the transaction status.
+  
+    // Update tool availability
+    const tool = toolListings.find(t => t.toolId === transaction.toolId);
+    if (tool) {
+      tool.availability = true; // Mark the tool as available.
+    }
+  
+    return ic.ok(`Tool with ID ${transaction.toolId} has been returned`); // Confirm the return.
+  }
+     
