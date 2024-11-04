@@ -95,4 +95,12 @@ export function addTool(ownerId: string, toolName: string, description: string, 
   
     return toolId; // Return the unique ID of the new tool.
   }
-  
+/**
+ * Retrieves all available tools for borrowing.
+ * @returns An array of tools that are currently available for borrowing.
+ */
+export function viewAvailableTools(): ToolListing[] {
+    // Filter and return tools that are available.
+    return toolListings.filter(tool => tool.availability);
+  }
+    
