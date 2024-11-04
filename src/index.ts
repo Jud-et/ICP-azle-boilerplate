@@ -64,4 +64,35 @@ export function addUser(username: string, contactInfo: string): string {
     userProfiles.push(newUser); // Add the user to the in-memory storage.
     return userId; // Return the unique ID of the new user.
   }
+
+/**
+ * Adds a new tool to the tool listings.
+ * @param ownerId - The ID of the user who owns the tool.
+ * @param toolName - The name of the tool.
+ * @param description - A description of the tool.
+ * @param condition - The condition of the tool (e.g., "new", "good", "worn").
+ * @returns The ID of the newly added tool.
+ */
+export function addTool(ownerId: string, toolName: string, description: string, condition: string): string {
+    const toolId = uuidv4(); // Generate a unique ID for the tool.
+    
+    const newTool: ToolListing = {
+      toolId,
+      ownerId,
+      toolName,
+      description,
+      availability: true,
+      condition
+    };
+  
+    toolListings.push(newTool); // Add the tool to the tool listings.
+  
+    // Update the owner's list of tools
+    const owner = userProfiles.find(user => user.userId === ownerId);
+    if (owner) {
+      owner.toolsOwned.push(toolId);
+    }
+  
+    return toolId; // Return the unique ID of the new tool.
+  }
   
