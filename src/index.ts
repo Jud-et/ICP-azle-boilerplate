@@ -1,12 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
-import { Server, StableBTreeMap, ic } from 'azle';
-import express from 'express';
-import { Principal } from '@dfinity/principal';
+import { ic } from 'azle'; // Adjusted to only use what Azle provides
 
-/**
- * Represents a user's profile.
- */
-
+// Type definitions
 type UserProfile = {
   userId: string;
   username: string;
@@ -15,9 +10,6 @@ type UserProfile = {
   toolsBorrowed: string[];
 };
 
-/**
- * Represents a tool listing for lending.
- */
 type ToolListing = {
   toolId: string;
   ownerId: string;
@@ -27,9 +19,6 @@ type ToolListing = {
   condition: string;
 };
 
-/**
- * Represents a borrowing transaction for tools.
- */
 type BorrowingTransaction = {
   transactionId: string;
   toolId: string;
@@ -39,20 +28,17 @@ type BorrowingTransaction = {
   status: 'pending' | 'approved' | 'returned';
 };
 
-// Storage for user profiles, tools, and transactions
+// Storage arrays
 let userProfiles: UserProfile[] = [];
 let toolListings: ToolListing[] = [];
 let borrowingTransactions: BorrowingTransaction[] = [];
 
 /**
  * Adds a new user profile to the system.
- * @param username - The name of the user.
- * @param contactInfo - Contact information for the user.
- * @returns The ID of the newly added user.
  */
-export function addUser(username: string, contactInfo: string): string {
-    const userId = uuidv4(); // Generate a unique ID for the user.
-    
+export function addUser(username: string, contactInfo: string): { success: boolean; data?: string; error?: string } {
+  try {
+    const userId = uuidv4();
     const newUser: UserProfile = {
       userId,
       username,
@@ -60,22 +46,19 @@ export function addUser(username: string, contactInfo: string): string {
       toolsOwned: [],
       toolsBorrowed: []
     };
-  
-    userProfiles.push(newUser); // Add the user to the in-memory storage.
-    return userId; // Return the unique ID of the new user.
+    userProfiles.push(newUser);
+    return { success: true, data: userId };
+  } catch (error) {
+    return { success: false, error: `Failed to add user: ${(error as Error).message}` };
   }
+}
 
 /**
  * Adds a new tool to the tool listings.
- * @param ownerId - The ID of the user who owns the tool.
- * @param toolName - The name of the tool.
- * @param description - A description of the tool.
- * @param condition - The condition of the tool (e.g., "new", "good", "worn").
- * @returns The ID of the newly added tool.
  */
-export function addTool(ownerId: string, toolName: string, description: string, condition: string): string {
-    const toolId = uuidv4(); // Generate a unique ID for the tool.
-    
+export function addTool(ownerId: string, toolName: string, description: string, condition: string): { success: boolean; data?: string; error?: string } {
+  try {
+    const toolId = uuidv4();
     const newTool: ToolListing = {
       toolId,
       ownerId,
@@ -84,39 +67,44 @@ export function addTool(ownerId: string, toolName: string, description: string, 
       availability: true,
       condition
     };
-  
-    toolListings.push(newTool); // Add the tool to the tool listings.
-  
-    // Update the owner's list of tools
+    toolListings.push(newTool);
+
     const owner = userProfiles.find(user => user.userId === ownerId);
     if (owner) {
       owner.toolsOwned.push(toolId);
+    } else {
+      throw new Error('Owner not found');
     }
-  
-    return toolId; // Return the unique ID of the new tool.
+
+    return { success: true, data: toolId };
+  } catch (error) {
+    return { success: false, error: `Failed to add tool: ${(error as Error).message}` };
   }
+}
+
 /**
  * Retrieves all available tools for borrowing.
- * @returns An array of tools that are currently available for borrowing.
  */
-export function viewAvailableTools(): ToolListing[] {
-    // Filter and return tools that are available.
-    return toolListings.filter(tool => tool.availability);
+export function viewAvailableTools(): { success: boolean; data?: ToolListing[]; error?: string } {
+  try {
+    const availableTools = toolListings.filter(tool => tool.availability);
+    return { success: true, data: availableTools };
+  } catch (error) {
+    return { success: false, error: `Failed to retrieve tools: ${(error as Error).message}` };
   }
+}
+
 /**
  * Allows a user to borrow a tool.
- * @param borrowerId - The ID of the user borrowing the tool.
- * @param toolId - The ID of the tool to be borrowed.
- * @returns A CanisterResult containing the transaction ID if successful.
  */
-export function borrowTool(borrowerId: string, toolId: string): CanisterResult<string> {
+export function borrowTool(borrowerId: string, toolId: string): { success: boolean; data?: string; error?: string } {
+  try {
     const tool = toolListings.find(t => t.toolId === toolId);
     if (!tool || !tool.availability) {
-      return ic.reject('Tool is not available for borrowing');
+      throw new Error('Tool is not available for borrowing');
     }
-  
-    const transactionId = uuidv4(); // Generate a unique transaction ID.
-    
+
+    const transactionId = uuidv4();
     const newTransaction: BorrowingTransaction = {
       transactionId,
       toolId,
@@ -125,39 +113,45 @@ export function borrowTool(borrowerId: string, toolId: string): CanisterResult<s
       returnDate: null,
       status: 'pending'
     };
-  
-    borrowingTransactions.push(newTransaction); // Add the transaction to the storage.
-    tool.availability = false; // Mark the tool as unavailable.
-  
-    // Update borrower's tools list
+
+    borrowingTransactions.push(newTransaction);
+    tool.availability = false;
+
     const borrower = userProfiles.find(user => user.userId === borrowerId);
     if (borrower) {
       borrower.toolsBorrowed.push(toolId);
+    } else {
+      throw new Error('Borrower not found');
     }
-  
-    return ic.ok(transactionId); // Return the unique ID of the transaction.
+
+    return { success: true, data: transactionId };
+  } catch (error) {
+    return { success: false, error: `Failed to borrow tool: ${(error as Error).message}` };
   }
-  
-  /**
-   * Allows a user to return a borrowed tool.
-   * @param transactionId - The ID of the transaction.
-   * @returns A CanisterResult indicating the outcome of the return.
-   */
-  export function returnTool(transactionId: string): CanisterResult<string> {
+}
+
+/**
+ * Allows a user to return a borrowed tool.
+ */
+export function returnTool(transactionId: string): { success: boolean; data?: string; error?: string } {
+  try {
     const transaction = borrowingTransactions.find(t => t.transactionId === transactionId);
     if (!transaction || transaction.status !== 'pending') {
-      return ic.reject('Invalid transaction or tool has already been returned');
+      throw new Error('Invalid transaction or tool has already been returned');
     }
-  
-    transaction.returnDate = new Date().toISOString(); // Set the return date.
-    transaction.status = 'returned'; // Update the transaction status.
-  
-    // Update tool availability
+
+    transaction.returnDate = new Date().toISOString();
+    transaction.status = 'returned';
+
     const tool = toolListings.find(t => t.toolId === transaction.toolId);
     if (tool) {
-      tool.availability = true; // Mark the tool as available.
+      tool.availability = true;
+    } else {
+      throw new Error('Tool not found');
     }
-  
-    return ic.ok(`Tool with ID ${transaction.toolId} has been returned`); // Confirm the return.
+
+    return { success: true, data: `Tool with ID ${transaction.toolId} has been returned` };
+  } catch (error) {
+    return { success: false, error: `Failed to return tool: ${(error as Error).message}` };
   }
-     
+}
