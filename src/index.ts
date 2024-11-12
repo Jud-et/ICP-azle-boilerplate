@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { ic } from 'azle'; // Adjusted to only use what Azle provides
+import { ic } from 'azle'; 
 
 // Type definitions
 type UserProfile = {
@@ -33,10 +33,31 @@ let userProfiles: UserProfile[] = [];
 let toolListings: ToolListing[] = [];
 let borrowingTransactions: BorrowingTransaction[] = [];
 
+// Helper functions
+function getUserById(userId: string): UserProfile | undefined {
+  return userProfiles.find(user => user.userId === userId);
+}
+
+function getToolById(toolId: string): ToolListing | undefined {
+  return toolListings.find(tool => tool.toolId === toolId);
+}
+
+function validateInput(input: string, fieldName: string): string | undefined {
+  if (!input) return `${fieldName} is required.`;
+  if (input.length > 255) return `${fieldName} is too long.`;
+  return undefined;
+}
+
 /**
- * Adds a new user profile to the system.
+ * Adds a new user profile to the system with input validation.
  */
 export function addUser(username: string, contactInfo: string): { success: boolean; data?: string; error?: string } {
+  const usernameError = validateInput(username, "Username");
+  const contactInfoError = validateInput(contactInfo, "Contact Info");
+  if (usernameError || contactInfoError) {
+    return { success: false, error: `${usernameError ?? ""} ${contactInfoError ?? ""}`.trim() };
+  }
+
   try {
     const userId = uuidv4();
     const newUser: UserProfile = {
@@ -47,17 +68,29 @@ export function addUser(username: string, contactInfo: string): { success: boole
       toolsBorrowed: []
     };
     userProfiles.push(newUser);
-    return { success: true, data: userId };
+    return { success: true, data: userId, message: 'User added successfully' };
   } catch (error) {
     return { success: false, error: `Failed to add user: ${(error as Error).message}` };
   }
 }
 
 /**
- * Adds a new tool to the tool listings.
+ * Adds a new tool to the tool listings with input validation.
  */
 export function addTool(ownerId: string, toolName: string, description: string, condition: string): { success: boolean; data?: string; error?: string } {
+  const toolNameError = validateInput(toolName, "Tool Name");
+  const descriptionError = validateInput(description, "Description");
+  const conditionError = validateInput(condition, "Condition");
+  if (toolNameError || descriptionError || conditionError) {
+    return { success: false, error: `${toolNameError ?? ""} ${descriptionError ?? ""} ${conditionError ?? ""}`.trim() };
+  }
+
   try {
+    const owner = getUserById(ownerId);
+    if (!owner) {
+      return { success: false, error: 'Owner not found' };
+    }
+
     const toolId = uuidv4();
     const newTool: ToolListing = {
       toolId,
@@ -68,15 +101,9 @@ export function addTool(ownerId: string, toolName: string, description: string, 
       condition
     };
     toolListings.push(newTool);
+    owner.toolsOwned.push(toolId);
 
-    const owner = userProfiles.find(user => user.userId === ownerId);
-    if (owner) {
-      owner.toolsOwned.push(toolId);
-    } else {
-      throw new Error('Owner not found');
-    }
-
-    return { success: true, data: toolId };
+    return { success: true, data: toolId, message: 'Tool added successfully' };
   } catch (error) {
     return { success: false, error: `Failed to add tool: ${(error as Error).message}` };
   }
@@ -95,15 +122,23 @@ export function viewAvailableTools(): { success: boolean; data?: ToolListing[]; 
 }
 
 /**
- * Allows a user to borrow a tool.
+ * Allows a user to borrow a tool, with additional validation and availability check.
  */
 export function borrowTool(borrowerId: string, toolId: string): { success: boolean; data?: string; error?: string } {
-  try {
-    const tool = toolListings.find(t => t.toolId === toolId);
-    if (!tool || !tool.availability) {
-      throw new Error('Tool is not available for borrowing');
-    }
+  const borrower = getUserById(borrowerId);
+  if (!borrower) {
+    return { success: false, error: 'Borrower not found' };
+  }
 
+  const tool = getToolById(toolId);
+  if (!tool) {
+    return { success: false, error: 'Tool not found' };
+  }
+  if (!tool.availability) {
+    return { success: false, error: 'Tool is not available for borrowing' };
+  }
+
+  try {
     const transactionId = uuidv4();
     const newTransaction: BorrowingTransaction = {
       transactionId,
@@ -113,44 +148,36 @@ export function borrowTool(borrowerId: string, toolId: string): { success: boole
       returnDate: null,
       status: 'pending'
     };
-
     borrowingTransactions.push(newTransaction);
     tool.availability = false;
+    borrower.toolsBorrowed.push(toolId);
 
-    const borrower = userProfiles.find(user => user.userId === borrowerId);
-    if (borrower) {
-      borrower.toolsBorrowed.push(toolId);
-    } else {
-      throw new Error('Borrower not found');
-    }
-
-    return { success: true, data: transactionId };
+    return { success: true, data: transactionId, message: 'Borrow request created successfully' };
   } catch (error) {
     return { success: false, error: `Failed to borrow tool: ${(error as Error).message}` };
   }
 }
 
 /**
- * Allows a user to return a borrowed tool.
+ * Allows a user to return a borrowed tool, with validation to check transaction status.
  */
 export function returnTool(transactionId: string): { success: boolean; data?: string; error?: string } {
+  const transaction = borrowingTransactions.find(t => t.transactionId === transactionId);
+  if (!transaction || transaction.status !== 'pending') {
+    return { success: false, error: 'Invalid transaction or tool has already been returned' };
+  }
+
   try {
-    const transaction = borrowingTransactions.find(t => t.transactionId === transactionId);
-    if (!transaction || transaction.status !== 'pending') {
-      throw new Error('Invalid transaction or tool has already been returned');
+    const tool = getToolById(transaction.toolId);
+    if (!tool) {
+      return { success: false, error: 'Tool not found' };
     }
 
     transaction.returnDate = new Date().toISOString();
     transaction.status = 'returned';
+    tool.availability = true;
 
-    const tool = toolListings.find(t => t.toolId === transaction.toolId);
-    if (tool) {
-      tool.availability = true;
-    } else {
-      throw new Error('Tool not found');
-    }
-
-    return { success: true, data: `Tool with ID ${transaction.toolId} has been returned` };
+    return { success: true, data: `Tool with ID ${transaction.toolId} has been returned`, message: 'Tool returned successfully' };
   } catch (error) {
     return { success: false, error: `Failed to return tool: ${(error as Error).message}` };
   }
