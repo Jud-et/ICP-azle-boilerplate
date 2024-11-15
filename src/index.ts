@@ -1,7 +1,8 @@
 import { v4 as uuidv4 } from 'uuid';
-import { ic } from 'azle'; // Adjusted to only use what Azle provides
+import { Server, StableBTreeMap, ic } from 'azle';
+import express from 'express';
 
-// Type definitions
+// Data Models
 type UserProfile = {
   userId: string;
   username: string;
@@ -28,14 +29,12 @@ type BorrowingTransaction = {
   status: 'pending' | 'approved' | 'returned';
 };
 
-// Storage arrays
-let userProfiles: UserProfile[] = [];
-let toolListings: ToolListing[] = [];
-let borrowingTransactions: BorrowingTransaction[] = [];
+// Storage
+const userProfilesStorage = StableBTreeMap<string, UserProfile>(0);
+const toolListingsStorage = StableBTreeMap<string, ToolListing>(1);
+const borrowingTransactionsStorage = StableBTreeMap<string, BorrowingTransaction>(2);
 
-/**
- * Adds a new user profile to the system.
- */
+// Functions
 export function addUser(username: string, contactInfo: string): { success: boolean; data?: string; error?: string } {
   try {
     const userId = uuidv4();
@@ -46,16 +45,13 @@ export function addUser(username: string, contactInfo: string): { success: boole
       toolsOwned: [],
       toolsBorrowed: []
     };
-    userProfiles.push(newUser);
+    userProfilesStorage.insert(userId, newUser);
     return { success: true, data: userId };
   } catch (error) {
     return { success: false, error: `Failed to add user: ${(error as Error).message}` };
   }
 }
 
-/**
- * Adds a new tool to the tool listings.
- */
 export function addTool(ownerId: string, toolName: string, description: string, condition: string): { success: boolean; data?: string; error?: string } {
   try {
     const toolId = uuidv4();
@@ -67,11 +63,12 @@ export function addTool(ownerId: string, toolName: string, description: string, 
       availability: true,
       condition
     };
-    toolListings.push(newTool);
+    toolListingsStorage.insert(toolId, newTool);
 
-    const owner = userProfiles.find(user => user.userId === ownerId);
-    if (owner) {
-      owner.toolsOwned.push(toolId);
+    const owner = userProfilesStorage.get(ownerId);
+    if ("Some" in owner) {
+      owner.Some.toolsOwned.push(toolId);
+      userProfilesStorage.insert(ownerId, owner.Some);
     } else {
       throw new Error('Owner not found');
     }
@@ -82,25 +79,20 @@ export function addTool(ownerId: string, toolName: string, description: string, 
   }
 }
 
-/**
- * Retrieves all available tools for borrowing.
- */
 export function viewAvailableTools(): { success: boolean; data?: ToolListing[]; error?: string } {
   try {
-    const availableTools = toolListings.filter(tool => tool.availability);
+    const allTools = toolListingsStorage.values();
+    const availableTools = allTools.filter(tool => tool.availability);
     return { success: true, data: availableTools };
   } catch (error) {
     return { success: false, error: `Failed to retrieve tools: ${(error as Error).message}` };
   }
 }
 
-/**
- * Allows a user to borrow a tool.
- */
 export function borrowTool(borrowerId: string, toolId: string): { success: boolean; data?: string; error?: string } {
   try {
-    const tool = toolListings.find(t => t.toolId === toolId);
-    if (!tool || !tool.availability) {
+    const tool = toolListingsStorage.get(toolId);
+    if ("None" in tool || !tool.Some.availability) {
       throw new Error('Tool is not available for borrowing');
     }
 
@@ -114,12 +106,14 @@ export function borrowTool(borrowerId: string, toolId: string): { success: boole
       status: 'pending'
     };
 
-    borrowingTransactions.push(newTransaction);
-    tool.availability = false;
+    borrowingTransactionsStorage.insert(transactionId, newTransaction);
+    tool.Some.availability = false;
+    toolListingsStorage.insert(toolId, tool.Some);
 
-    const borrower = userProfiles.find(user => user.userId === borrowerId);
-    if (borrower) {
-      borrower.toolsBorrowed.push(toolId);
+    const borrower = userProfilesStorage.get(borrowerId);
+    if ("Some" in borrower) {
+      borrower.Some.toolsBorrowed.push(toolId);
+      userProfilesStorage.insert(borrowerId, borrower.Some);
     } else {
       throw new Error('Borrower not found');
     }
@@ -130,27 +124,26 @@ export function borrowTool(borrowerId: string, toolId: string): { success: boole
   }
 }
 
-/**
- * Allows a user to return a borrowed tool.
- */
 export function returnTool(transactionId: string): { success: boolean; data?: string; error?: string } {
   try {
-    const transaction = borrowingTransactions.find(t => t.transactionId === transactionId);
-    if (!transaction || transaction.status !== 'pending') {
+    const transaction = borrowingTransactionsStorage.get(transactionId);
+    if ("None" in transaction || transaction.Some.status !== 'pending') {
       throw new Error('Invalid transaction or tool has already been returned');
     }
 
-    transaction.returnDate = new Date().toISOString();
-    transaction.status = 'returned';
+    transaction.Some.returnDate = new Date().toISOString();
+    transaction.Some.status = 'returned';
+    borrowingTransactionsStorage.insert(transactionId, transaction.Some);
 
-    const tool = toolListings.find(t => t.toolId === transaction.toolId);
-    if (tool) {
-      tool.availability = true;
+    const tool = toolListingsStorage.get(transaction.Some.toolId);
+    if ("Some" in tool) {
+      tool.Some.availability = true;
+      toolListingsStorage.insert(transaction.Some.toolId, tool.Some);
     } else {
       throw new Error('Tool not found');
     }
 
-    return { success: true, data: `Tool with ID ${transaction.toolId} has been returned` };
+    return { success: true, data: `Tool with ID ${transaction.Some.toolId} has been returned` };
   } catch (error) {
     return { success: false, error: `Failed to return tool: ${(error as Error).message}` };
   }
